@@ -2,6 +2,9 @@
 
 A full-stack web application that allows users to capture and share Points of Interest (POI) through images and captions.
 
+## Hosted link 
+https://vistagram-aastha.vercel.app/
+
 ## Features
 
 - 📸 Image Capture & Upload
