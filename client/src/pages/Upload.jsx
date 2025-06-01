@@ -1,79 +1,86 @@
-import { useState, useRef } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useState, useRef } from 'react'
+import { useMutation } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 function Upload() {
-  const [image, setImage] = useState(null);
-  const [caption, setCaption] = useState('');
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const videoRef = useRef(null);
-  const navigate = useNavigate();
+  const [image, setImage] = useState(null)
+  const [caption, setCaption] = useState('')
+  const [isCameraActive, setIsCameraActive] = useState(false)
+  const videoRef = useRef(null)
+  const navigate = useNavigate()
 
   const uploadMutation = useMutation({
     mutationFn: async (formData) => {
       const response = await axios.post(`${API_URL}/posts`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response.data;
     },
     onSuccess: () => {
-      navigate('/');
+      navigate('/')
     },
-  });
+  })
 
+  // 1) Request camera access, assign stream to <video>, THEN call .play()
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+        videoRef.current.srcObject = stream
+        // *This line is essential*—without it, the video will not start rendering
+        await videoRef.current.play()
       }
-      setIsCameraActive(true);
+      setIsCameraActive(true)
     } catch (error) {
-      console.error('Error accessing camera:', error);
+      console.error('Error accessing camera:', error)
     }
-  };
+  }
 
   const stopCamera = () => {
     if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject;
-      const tracks = stream.getTracks();
-      tracks.forEach(track => track.stop());
-      videoRef.current.srcObject = null;
+      const stream = videoRef.current.srcObject
+      const tracks = stream.getTracks()
+      tracks.forEach((track) => track.stop())
+      videoRef.current.srcObject = null
     }
-    setIsCameraActive(false);
-  };
+    setIsCameraActive(false)
+  }
 
   const captureImage = () => {
     if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
-      
-      canvas.toBlob((blob) => {
-        const file = new File([blob], 'captured-image.jpg', { type: 'image/jpeg' });
-        setImage(file);
-        stopCamera();
-      }, 'image/jpeg');
+      const canvas = document.createElement('canvas')
+      canvas.width = videoRef.current.videoWidth
+      canvas.height = videoRef.current.videoHeight
+      canvas.getContext('2d').drawImage(videoRef.current, 0, 0)
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const file = new File([blob], 'captured-image.jpg', { type: 'image/jpeg' })
+            setImage(file)
+            stopCamera()
+          }
+        },
+        'image/jpeg',
+        0.9
+      )
     }
-  };
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!image || !caption) return;
+    e.preventDefault()
+    if (!image || !caption) return
 
-    const formData = new FormData();
-    formData.append('image', image);
-    formData.append('caption', caption);
-    formData.append('username', 'currentUser'); // In a real app, this would come from auth
+    const formData = new FormData()
+    formData.append('image', image)
+    formData.append('caption', caption)
+    formData.append('username', 'currentUser') // Replace with real username
 
-    uploadMutation.mutate(formData);
-  };
+    uploadMutation.mutate(formData)
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -97,7 +104,7 @@ function Upload() {
                 ref={videoRef}
                 autoPlay
                 playsInline
-                className="w-full rounded-lg"
+                className="w-full rounded-lg bg-black"
               />
               <button
                 type="button"
@@ -128,7 +135,10 @@ function Upload() {
         </div>
 
         <div className="card">
-          <label htmlFor="caption" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="caption"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Caption
           </label>
           <textarea
@@ -151,7 +161,7 @@ function Upload() {
         </button>
       </form>
     </div>
-  );
+  )
 }
 
-export default Upload; 
+export default Upload

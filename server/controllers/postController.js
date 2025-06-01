@@ -39,7 +39,12 @@ exports.createPost = async (req, res) => {
         username,
         imageUrl: result.secure_url,
         caption,
+        createdAt: new Date(),        // ✅ Fix here
+        likes: 0,
+        shares: 0,
+        likedBy: []                   // ✅ Include empty array like in seeds
       });
+   
 
       await post.save();
       res.status(201).json(post);
