@@ -1,6 +1,8 @@
 const Post = require('../models/Post');
 const cloudinary = require('../config/cloudinary');
 const { validationResult } = require('express-validator');
+const fs = require('fs');
+const path = require('path');
 
 // Get all posts
 exports.getPosts = async (req, res) => {
@@ -27,20 +29,35 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ message: 'No image file provided' });
     }
 
-    // Upload image to Cloudinary
-    const result = await cloudinary.uploader.upload(imageFile.path, {
-      folder: 'vistagram',
-    });
+    try {
+      // Upload image to Cloudinary
+      const result = await cloudinary.uploader.upload(imageFile.path, {
+        folder: 'vistagram',
+      });
 
-    const post = new Post({
-      username,
-      imageUrl: result.secure_url,
-      caption,
-    });
+      const post = new Post({
+        username,
+        imageUrl: result.secure_url,
+        caption,
+      });
 
-    await post.save();
-    res.status(201).json(post);
+      await post.save();
+      res.status(201).json(post);
+    } finally {
+      // Clean up the uploaded file
+      if (imageFile.path) {
+        fs.unlink(imageFile.path, (err) => {
+          if (err) console.error('Error deleting temporary file:', err);
+        });
+      }
+    }
   } catch (error) {
+    // Clean up the uploaded file in case of error
+    if (req.file && req.file.path) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('Error deleting temporary file:', err);
+      });
+    }
     res.status(500).json({ message: 'Error creating post', error: error.message });
   }
 };
